@@ -13,3 +13,4 @@ __pycache__/
 .venv/
 .git/
 .DS_Store
+deploy-pi.sh

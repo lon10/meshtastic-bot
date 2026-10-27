@@ -309,7 +309,7 @@
     <article class="info-card rule-card">
       <span class="eyebrow">Бот в личных сообщениях</span><h2>Команды бота</h2>
       <p id="dashboard-bot-status"><strong>Бот включён</strong></p>
-      <p><code>ping</code> — число хопов до отправителя; <code>trace</code> — трассировка маршрута с ответом в личку.</p>
+      <p><code>ping</code>/<code>p</code> — хопы, SNR и RSSI последнего хопа; <code>trace</code> — трассировка маршрута с ответом в личку.</p>
       <p><code>stats</code> — CPU, RAM, температура, диск и время работы Pi; <code>w</code>/<code>W</code> — погода выбранного города; <code>date</code> — дата и время в настроенном часовом поясе. Совпавший шаблон имеет приоритет. На остальные сообщения и в общем канале бот не отвечает.</p>
     </article>
   </section>
@@ -388,7 +388,7 @@
     <h2>Автоответы в личке</h2>
     <label class="bot-toggle"><input id="bot-enabled" type="checkbox" checked><span>Включить ответы бота</span></label>
     <p id="bot-mode-status">Бот включён</p>
-    <p>Совпавший шаблон имеет приоритет. Без шаблона работают команды <strong>ping</strong> (хопы), <strong>trace</strong> (маршрут), <strong>stats</strong> (состояние Pi), <strong>w/W</strong> (погода выбранного города) и <strong>date</strong> (дата и время в настроенном часовом поясе). На остальные сообщения бот не отвечает. В LongFast автоответов нет.</p>
+    <p>Совпавший шаблон имеет приоритет. Без шаблона работают команды <strong>ping/p</strong> (хопы и сигнал последнего хопа), <strong>trace</strong> (маршрут), <strong>stats</strong> (состояние Pi), <strong>w/W</strong> (погода выбранного города) и <strong>date</strong> (дата и время в настроенном часовом поясе). На остальные сообщения бот не отвечает. В LongFast автоответов нет.</p>
     <form id="template-form" class="template-form">
       <label>Ключ<input id="template-key" required placeholder="привет"></label>
       <label>Ответ<input id="template-value" required placeholder="Привет!" maxlength="200"></label>

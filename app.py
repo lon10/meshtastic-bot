@@ -365,8 +365,12 @@ def weather_reply(weather):
 
 def stats_reply():
     """Summarize Raspberry Pi host metrics in one Meshtastic text packet."""
+    def metric_text(container_path, host_path):
+        path = Path(container_path)
+        return (path if path.is_file() else Path(host_path)).read_text()
+
     def cpu_times():
-        fields = Path("/host/proc-stat").read_text().splitlines()[0].split()
+        fields = metric_text("/host/proc-stat", "/proc/stat").splitlines()[0].split()
         if fields[0] != "cpu" or len(fields) < 6:
             raise ValueError("Неверный формат /proc/stat")
         values = [int(value) for value in fields[1:9]]
@@ -379,14 +383,14 @@ def stats_reply():
     cpu_percent = round(100 * (1 - (idle_after - idle_before) / elapsed)) if elapsed > 0 else 0
 
     memory = {}
-    for line in Path("/host/meminfo").read_text().splitlines():
+    for line in metric_text("/host/meminfo", "/proc/meminfo").splitlines():
         key, separator, value = line.partition(":")
         if separator and key in {"MemTotal", "MemAvailable"}:
             memory[key] = int(value.split()[0])
     ram_total = memory["MemTotal"] / 1024 / 1024
     ram_used = (memory["MemTotal"] - memory["MemAvailable"]) / 1024 / 1024
 
-    uptime = int(float(Path("/host/uptime").read_text().split()[0]))
+    uptime = int(float(metric_text("/host/uptime", "/proc/uptime").split()[0]))
     days, remainder = divmod(uptime, 86400)
     hours, _ = divmod(remainder, 3600)
     uptime_text = f"{days}д {hours}ч" if days else f"{hours}ч {remainder % 3600 // 60}м"
@@ -397,7 +401,7 @@ def stats_reply():
     parts = [f"Pi: CPU {cpu_percent}%, load {os.getloadavg()[0]:.1f}",
              f"RAM {ram_used:.1f}/{ram_total:.1f} ГБ"]
     try:
-        temperature = int(Path("/host/cpu-temp").read_text().strip()) / 1000
+        temperature = int(metric_text("/host/cpu-temp", "/sys/class/thermal/thermal_zone0/temp").strip()) / 1000
         parts.append(f"T {temperature:.1f}°C")
     except (OSError, ValueError):
         pass
@@ -406,15 +410,28 @@ def stats_reply():
 
 
 def list_usb_devices():
-    """Expose the single serial device explicitly passed by compose.usb.yaml."""
-    path = "/dev/meshtastic"
-    try:
-        device = os.stat(path)
-    except FileNotFoundError:
-        return []
-    if stat.S_ISCHR(device.st_mode) and os.major(device.st_rdev) in (166, 188):
-        return [{"name": "Heltec USB", "address": path, "transport": "usb"}]
-    return []
+    """Find a Compose-mapped radio or Linux host serial ports."""
+    mapped = Path("/dev/meshtastic")
+    paths = [mapped]
+    by_id = Path("/dev/serial/by-id")
+    if by_id.is_dir():
+        paths.extend(sorted(by_id.iterdir()))
+    paths.extend(sorted(Path("/dev").glob("ttyACM*")))
+    paths.extend(sorted(Path("/dev").glob("ttyUSB*")))
+    devices = []
+    seen = set()
+    for path in paths:
+        try:
+            device = path.stat()
+        except OSError:
+            continue
+        if (not stat.S_ISCHR(device.st_mode) or os.major(device.st_rdev) not in (166, 188)
+                or device.st_rdev in seen):
+            continue
+        seen.add(device.st_rdev)
+        devices.append({"name": "Heltec USB" if path == mapped else path.name,
+                        "address": str(path), "transport": "usb"})
+    return devices
 
 
 def valid_usb_device(path):
@@ -823,6 +840,20 @@ def hop_reply(sender_num, received_hops, interface):
     return "Число хопов до твоей ноды пока недоступно."
 
 
+def ping_reply(sender_num, received_hops, packet, interface):
+    """Add this packet's last-hop radio signal to the existing hop response."""
+    def signal(field, digits, unit):
+        value = packet.get(field)
+        if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+            return f"{value:.{digits}f} {unit}"
+        return "нет данных"
+
+    hops = hop_reply(sender_num, received_hops, interface)
+    snr = signal("rxSnr", 1, "дБ")
+    rssi = signal("rxRssi", 0, "dBm")
+    return f"{hops} Последний хоп: SNR {snr}, RSSI {rssi}."
+
+
 def on_text(packet, interface):
     # The radio may publish its buffered packets during SerialInterface/BLEInterface
     # construction. Process them after the connection has supplied our node ID.
@@ -962,8 +993,8 @@ def process_text(packet, interface, connected_at):
                 if command_text == "stats":
                     enqueue(("stats", sender))
                     return
-                if command_text == "ping":
-                    answer = hop_reply(sender_num, hops, interface)
+                if command_text in {"ping", "p"}:
+                    answer = ping_reply(sender_num, hops, packet, interface)
                 elif command_text == "trace":
                     if queue_trace(sender, "bot", own_id) is None:
                         enqueue(("bot_send", "dm", sender, "Трассировка до этой ноды уже выполняется."))

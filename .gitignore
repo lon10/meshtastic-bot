@@ -12,3 +12,4 @@ backups/
 .venv/
 __pycache__/
 .DS_Store
+deploy-pi.sh
