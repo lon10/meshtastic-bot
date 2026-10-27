@@ -1,0 +1,38 @@
+services:
+  meshtastic:
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.13.14-slim-trixie}
+    env_file:
+      - .env
+    environment:
+      DB_PATH: /data/messages.sqlite3
+      WEB_HOST: 0.0.0.0
+      WEB_PORT: 8765
+      DBUS_SYSTEM_BUS_ADDRESS: unix:path=/run/dbus/system_bus_socket
+    ports:
+      - "${MESHTASTIC_WEB_PORT:-8766}:8765"
+    # USB_DEVICE should use /dev/serial/by-id/... so the path stays stable
+    # when Linux assigns a different ttyUSB/ttyACM number after reboot.
+    # /dev/null keeps Bluetooth-only installs valid when USB_DEVICE is unset.
+    devices:
+      - "${USB_DEVICE:-/dev/null}:/dev/meshtastic"
+    volumes:
+      - meshtastic-data:/data
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+      - /proc/stat:/host/proc-stat:ro
+      - /proc/meminfo:/host/meminfo:ro
+      - /proc/uptime:/host/uptime:ro
+      - /sys/class/thermal/thermal_zone0/temp:/host/cpu-temp:ro
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+volumes:
+  meshtastic-data:

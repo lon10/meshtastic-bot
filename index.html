@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meshtastic · чаты</title>
+  <link rel="stylesheet" href="/leaflet.css">
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #0a111b; color: #e9f3fa; --border: #294357; --muted: #9fb5c5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(circle at 12% -12%, #184052 0, transparent 38%), #0a111b; }
+    button, input, select, textarea { font: inherit; }
+    button { color: #e9f3fa; background: #21394b; border: 1px solid #3a596d; border-radius: 11px; padding: 10px 13px; cursor: pointer; transition: background .15s, border-color .15s; }
+    button:hover { background: #30536a; border-color: #6d9bab; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    button.primary { background: #168c85; border-color: #3ab9a9; font-weight: 700; }
+    button.primary:hover { background: #20a59a; }
+    button.danger { background: #3c2c35; border-color: #805467; color: #ffdae1; }
+    input, select, textarea { min-width: 0; width: 100%; color: #e9f3fa; background: #0d1a26; border: 1px solid #3b576b; border-radius: 10px; padding: 10px 12px; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: #55cab8; box-shadow: 0 0 0 3px #55cab823; }
+    textarea { resize: vertical; min-height: 76px; }
+    label { display: grid; gap: 6px; color: #b5c9d8; font-size: .84rem; font-weight: 600; }
+    [hidden] { display: none !important; }
+    .top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; max-width: 1500px; margin: auto; padding: 24px 18px 18px; }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand-mark { display: grid; place-items: center; width: 43px; height: 43px; border-radius: 14px; background: linear-gradient(140deg, #168c85, #315c84); font-size: 1.4rem; box-shadow: 0 8px 25px #0005; }
+    .eyebrow { display: block; color: #73d5c5; font-size: .68rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: 1.48rem; letter-spacing: -.025em; }
+    h2 { margin: 0; font-size: 1.05rem; }
+    .muted { color: #9aafc2; }
+    #status { display: inline-flex; align-items: center; gap: 8px; background: #3d342c; color: #ffe2af; padding: 9px 13px; border: 1px solid #745d43; border-radius: 30px; font-size: .81rem; font-weight: 700; }
+    #status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #ffc779; }
+    #status.online { background: #16413b; color: #b4f7d6; border-color: #338274; }
+    #status.online::before { background: #70e9bd; }
+    .connection, .connected-panel { max-width: 1464px; margin: 0 auto 15px; background: linear-gradient(120deg, #152b3b, #11222f); border: 1px solid var(--border); border-radius: 17px; box-shadow: 0 16px 40px #0003; }
+    .tabs { position: sticky; top: 0; z-index: 30; display: flex; gap: 7px; max-width: 1500px; margin: 0 auto 14px; padding: 0 18px; border-bottom: 1px solid #294357; background: #0a1925; }
+    .tab { border: 0; border-bottom: 3px solid transparent; border-radius: 10px 10px 0 0; background: transparent; color: #a8bdcc; padding: 12px 18px; font-weight: 700; }
+    .tab:hover { background: #1a3341; }
+    .tab[aria-selected="true"] { color: #dcfff2; border-bottom-color: #62d9bf; background: #1b3b43; }
+    .view { max-width: 1500px; margin: 0 auto; }
+    .view-heading { margin: 8px 18px 17px; }
+    .view-heading h2 { font-size: 1.4rem; }
+    .view-heading p { margin: 5px 0 0; font-size: .85rem; }
+    .dashboard-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; padding: 0 18px; margin-bottom: 15px; }
+    .stat-card { padding: 17px 19px; background: linear-gradient(130deg, #173342, #11202d); border: 1px solid var(--border); border-radius: 17px; }
+    .stat-card span { display: block; color: #a7bdca; font-size: .8rem; }
+    .stat-card strong { display: block; margin: 7px 0 4px; font-size: 1.6rem; color: #dcfff2; overflow-wrap: anywhere; }
+    .stat-card small { color: #8eabba; }
+    .map-card { margin: 0 18px 28px; padding: 16px; }
+    .map-card .side-head { margin-bottom: 10px; }
+    .map-actions { display: flex; gap: 7px; }
+    .map-actions button { font-size: .78rem; padding: 7px 9px; }
+    #node-map { height: min(54vh, 520px); min-height: 330px; border-radius: 12px; background: #1b3040; }
+    #map-summary { margin: 9px 0 0; color: #9fb5c5; font-size: .8rem; }
+    .map-popup { display: grid; gap: 6px; min-width: 150px; color: #172936; }
+    .map-popup strong { font-size: .95rem; }
+    .map-popup button { padding: 6px 9px; color: #fff; }
+    .connection { display: grid; grid-template-columns: minmax(150px, 190px) minmax(170px, 1fr) minmax(170px, 1fr) auto auto; gap: 10px; align-items: end; padding: 17px; }
+    .connection-heading { grid-column: 1 / -1; }
+    .connection-heading h2 { margin: 4px 0; }
+    .connection-heading p { margin: 0; color: var(--muted); font-size: .8rem; }
+    .connected-panel { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 15px 18px; }
+    .connected-info { display: flex; align-items: center; gap: 13px; min-width: 0; }
+    .connected-icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px; background: #1e6059; color: #aef5db; font-size: 1.3rem; }
+    .connected-info h2 { margin: 2px 0 3px; }
+    .connected-info p { margin: 0; color: var(--muted); font-size: .77rem; overflow-wrap: anywhere; }
+    #feedback { min-height: 1.2em; max-width: 1500px; margin: auto; padding: 0 20px 12px; color: #b4f7d6; font-size: .84rem; }
+    #feedback.error { color: #ffc1ba; }
+    .info-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; max-width: 1500px; margin: 0 auto 15px; padding: 0 18px; }
+    .info-card { min-width: 0; padding: 17px 19px; background: #11202d; border: 1px solid var(--border); border-radius: 17px; box-shadow: 0 14px 35px #0002; }
+    .info-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .info-head h2 { margin: 3px 0 0; }
+    .info-head button { font-size: .78rem; padding: 7px 10px; }
+    .weather-main { display: flex; align-items: center; gap: 15px; margin: 13px 0 9px; }
+    #weather-temp { font-size: 2.25rem; font-weight: 750; letter-spacing: -.05em; line-height: 1; color: #d3fff1; }
+    #weather-condition { display: block; font-weight: 700; }
+    #weather-details, #weather-time-row, .rule-card p { margin: 5px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+    .weather-source { color: #87cfc5; text-decoration: none; }
+    .weather-source:hover { text-decoration: underline; }
+    .rule-card { background: linear-gradient(120deg, #173737, #142937); border-color: #366b68; }
+    .rule-card p { margin-top: 10px; }
+    .rule-card strong { color: #d2f9e9; }
+    .rule-card code { color: #c0fff0; background: #234f4b; padding: 2px 5px; border-radius: 5px; }
+    .layout { display: grid; grid-template-areas: "sidebar chat nodes"; grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(240px, 285px); gap: 15px; max-width: 1500px; margin: auto; padding: 0 18px 28px; align-items: start; }
+    .panel { min-width: 0; background: #11202d; border: 1px solid var(--border); border-radius: 17px; box-shadow: 0 14px 35px #0002; }
+    aside { grid-area: sidebar; padding: 16px; }
+    .side-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 13px; }
+    .side-head button { font-size: .82rem; }
+    .chat-item { display: block; width: 100%; margin-bottom: 7px; text-align: left; background: #192d3d; border-color: #2d4a5d; }
+    .chat-item.active { background: #1b4c51; border-color: #58caba; }
+    .chat-item .name { display: block; font-weight: 700; }
+    .chat-item .preview { display: block; color: #9aafc2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .8rem; margin-top: 3px; }
+    .chat-item .name-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .chat-group-label { margin: 14px 0 7px; color: #83dac7; font-size: .72rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+    .chat-group:first-child .chat-group-label { margin-top: 0; }
+    .unread-badge { display: inline-grid; place-items: center; min-width: 23px; height: 23px; padding: 0 6px; border-radius: 999px; background: #4ad3af; color: #082b2a; font-size: .74rem; font-weight: 800; }
+    .tab .unread-badge { margin-left: 6px; min-width: 20px; height: 20px; }
+    .unread-divider { display: flex; align-items: center; gap: 10px; color: #77ead0; font-size: .79rem; font-weight: 800; text-align: center; }
+    .unread-divider::before, .unread-divider::after { content: ""; flex: 1; border-top: 1px solid #48ad9c; }
+    .bubble.unread { border-color: #58b5a5; }
+    .chat-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; }
+    .chat-switch button[aria-selected="true"] { background: #1b4c51; border-color: #58caba; }
+    .channel-note { color: var(--muted); font-size: .75rem; line-height: 1.4; margin: 8px 0 0; }
+    .new-chat { display: grid; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .new-chat button { width: 100%; }
+    #open-create-channel { width: 100%; margin-top: 10px; border-style: dashed; color: #a6eadd; }
+    #create-channel-form { display: grid; gap: 13px; padding: 20px; }
+    #create-channel-form input { min-width: 0; }
+    .channel-config-dialog { width: min(94vw, 550px); max-height: 86vh; overflow-y: auto; padding: 0; color: #e9f3fa; background: #11202d; border: 1px solid #41647a; border-radius: 18px; box-shadow: 0 30px 90px #000a; }
+    .channel-config-dialog::backdrop { background: #050b13bd; backdrop-filter: blur(4px); }
+    .channel-config-head { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding: 20px; border-bottom: 1px solid var(--border); }
+    .channel-config-head p { margin: 5px 0 0; color: var(--muted); font-size: .82rem; }
+    .channel-config-form { display: grid; gap: 13px; padding: 20px; }
+    .channel-config-form .radio-check { display: flex; align-items: center; gap: 9px; }
+    .channel-config-form .radio-check input { width: auto; min-width: 18px; }
+    .channel-config-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .channel-config-actions button { flex: 1 1 145px; }
+    .channel-config-form .channel-note { margin: 0; }
+    .nodes { grid-area: nodes; padding: 16px; }
+    .nodes .side-head { margin-bottom: 9px; }
+    .nodes .side-head h2 span { color: #9aafc2; font-size: .8rem; font-weight: 400; }
+    #node-search { margin-bottom: 8px; }
+    .node-help { margin: 0 0 10px; color: #9aafc2; font-size: .75rem; line-height: 1.4; }
+    #node-list { max-height: min(73vh, 740px); overflow-y: auto; }
+    .node-item { display: block; width: 100%; margin-bottom: 7px; text-align: left; background: #192d3d; border-color: #2d4a5d; }
+    .node-item .name { display: block; font-weight: 700; overflow-wrap: anywhere; }
+    .node-item .detail { display: block; color: #9aafc2; font-size: .77rem; margin-top: 3px; overflow-wrap: anywhere; }
+    .node-empty { color: #9aafc2; font-size: .83rem; }
+    .node-dialog { width: min(94vw, 650px); max-height: min(85vh, 850px); padding: 0; color: #e9f3fa; background: #11202d; border: 1px solid #41647a; border-radius: 18px; box-shadow: 0 30px 90px #000a; }
+    .node-dialog::backdrop { background: #050b13bd; backdrop-filter: blur(4px); }
+    .node-dialog-head { display: flex; align-items: start; justify-content: space-between; gap: 14px; padding: 21px 23px 15px; border-bottom: 1px solid var(--border); }
+    .node-dialog-head h2 { margin: 4px 0; font-size: 1.25rem; overflow-wrap: anywhere; }
+    .node-dialog-head p { margin: 0; color: var(--muted); font-size: .8rem; }
+    .node-dialog-head button { padding: 5px 10px; font-size: 1.25rem; line-height: 1; }
+    .node-dialog-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 18px 23px; overflow-y: auto; }
+    .node-detail-section { min-width: 0; padding: 14px; background: #172b3a; border: 1px solid var(--border); border-radius: 12px; }
+    .node-detail-section h3 { margin: 0 0 10px; color: #8de1d2; font-size: .85rem; }
+    .node-detail-section dl { display: grid; grid-template-columns: minmax(105px, 1fr) minmax(0, 1.2fr); gap: 8px 10px; margin: 0; font-size: .78rem; }
+    .node-detail-section dt { color: var(--muted); }
+    .node-detail-section dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+    .node-dialog-actions { display: flex; justify-content: flex-end; padding: 0 23px 21px; }
+    .node-dialog-actions { gap: 8px; flex-wrap: wrap; }
+    .node-traces { padding: 0 23px 16px; }
+    .node-traces h3 { margin: 0 0 9px; font-size: .9rem; color: #8de1d2; }
+    .trace-history { margin: 0 18px 28px; padding: 18px; }
+    .trace-history h2 { margin-bottom: 5px; }
+    .trace-list { display: grid; gap: 9px; max-height: 480px; overflow-y: auto; }
+    .trace-entry { min-width: 0; padding: 11px 13px; background: #172b3a; border: 1px solid var(--border); border-radius: 11px; }
+    .trace-entry strong { color: #c6f5e9; }
+    .trace-entry small { color: var(--muted); }
+    .trace-entry p { margin: 5px 0 0; font-size: .8rem; overflow-wrap: anywhere; }
+    .trace-entry .trace-error { color: #ffbfb9; }
+    .trace-entry .trace-route { color: #bbd8e4; }
+    @media (max-width: 600px) { .node-dialog-content { grid-template-columns: 1fr; } }
+    .chat { grid-area: chat; display: flex; flex-direction: column; min-height: 670px; overflow: hidden; }
+    .chat-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 18px 20px; border-bottom: 1px solid var(--border); background: #162838; }
+    .chat-head > div { min-width: 0; }
+    .chat-head h2 { overflow-wrap: anywhere; }
+    .chat-head > button { flex: 0 0 auto; }
+    .chat-head p { margin: 4px 0 0; font-size: .83rem; }
+    #history { display: block; margin: 12px auto; }
+    #newer { display: block; margin: 12px auto; }
+    #messages { flex: 1; display: flex; flex-direction: column; gap: 10px; max-height: min(61vh, 720px); min-height: 310px; overflow-y: auto; padding: 20px; }
+    .bubble { max-width: min(82%, 670px); align-self: flex-start; padding: 11px 14px; background: #1d3142; border: 1px solid #355368; border-radius: 15px 15px 15px 4px; box-shadow: 0 5px 18px #0002; }
+    .bubble.mine { align-self: flex-end; background: #18514d; border-color: #2a897f; border-radius: 15px 15px 4px 15px; }
+    .bubble .meta { display: flex; gap: 10px; flex-wrap: wrap; color: #a6bacd; font-size: .75rem; }
+    .bubble .text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; margin: 7px 0 0; }
+    .reply-quote { display: grid; gap: 3px; margin-top: 9px; padding: 7px 10px; border-left: 3px solid #71cabb; border-radius: 5px; background: #0c2430a8; color: #b8d2df; font-size: .82rem; }
+    .reply-quote strong { color: #8ae0ce; }
+    .reply-quote span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .reaction-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+    .reaction-chip { border: 1px solid #486578; background: #263e50; border-radius: 999px; padding: 3px 9px; font-size: .85rem; line-height: 1.4; }
+    .reaction-chip.mine { border-color: #74d4bd; background: #22635b; }
+    .reaction-menu { position: fixed; z-index: 100; display: flex; flex-direction: column; gap: 7px; width: min(370px, calc(100vw - 16px)); max-height: min(490px, 75vh); padding: 10px; border: 1px solid #486578; border-radius: 15px; background: #142838; box-shadow: 0 12px 32px #000b; }
+    .reply-action { flex: none; text-align: left; padding: 8px 10px; border-color: #4a807b; background: #194540; }
+    .reaction-menu input { padding: 8px 10px; }
+    .emoji-tabs { display: flex; flex: none; gap: 3px; overflow-x: auto; padding-bottom: 3px; }
+    .emoji-tab { flex: 0 0 auto; min-width: 31px; padding: 4px; font-size: 1.15rem; }
+    .emoji-tab[aria-pressed="true"] { background: #216a64; border-color: #72d8c0; }
+    .emoji-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); align-content: start; gap: 3px; min-height: 80px; overflow-y: auto; }
+    .emoji-option { width: 100%; height: 37px; padding: 2px; font-size: 1.35rem; line-height: 1; }
+    .emoji-empty { grid-column: 1 / -1; color: #a6bacd; font-size: .82rem; text-align: center; }
+    .emoji-footer { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; color: #a6bacd; font-size: .76rem; }
+    .emoji-footer button { padding: 4px 8px; font-size: .76rem; }
+    .emoji-manual { display: flex; flex: none; gap: 6px; border-top: 1px solid #335064; padding-top: 8px; }
+    .emoji-manual button { padding: 6px 10px; }
+    .bubble .delivery { display: block; margin-top: 8px; color: #bbd0dc; font-size: .72rem; text-align: right; }
+    .bubble .delivery.delivered, .bubble .delivery.relayed { color: #a5edc1; }
+    .bubble .delivery.failed { color: #ffc3bb; }
+    .empty { margin: auto; color: #9aafc2; text-align: center; }
+    #send-form { padding: 16px 20px; border-top: 1px solid var(--border); background: #162838; }
+    #reply-preview { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 8px 10px; border-left: 3px solid #71cabb; border-radius: 7px; background: #0c2430; }
+    #reply-preview[hidden] { display: none; }
+    #reply-preview .reply-summary { flex: 1; min-width: 0; display: grid; gap: 2px; color: #a9c8d7; font-size: .81rem; }
+    #reply-preview .reply-summary strong { color: #8ae0ce; }
+    #reply-preview .reply-summary span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    #cancel-reply { padding: 4px 8px; }
+    #send-form .actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 9px; }
+    .small { font-size: .77rem; color: #8ca2b6; }
+    .templates { max-width: 1464px; margin: 18px 18px 40px; padding: 18px; }
+    .radio-settings { max-width: 1464px; margin: 18px 18px 0; padding: 18px; }
+    .radio-settings > p { color: var(--muted); font-size: .84rem; line-height: 1.5; }
+    .radio-settings h2 { margin-bottom: 5px; }
+    .radio-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    .radio-settings details { min-width: 0; padding: 12px 14px; background: #172b3a; border: 1px solid var(--border); border-radius: 12px; }
+    .radio-settings summary { cursor: pointer; font-weight: 700; color: #c6f5e9; }
+    .radio-settings form { display: grid; gap: 12px; margin-top: 14px; }
+    .radio-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .radio-fields label { min-width: 0; }
+    .radio-fields .radio-check { display: flex; align-items: center; gap: 9px; padding: 10px 0; }
+    .radio-fields .radio-check input { width: auto; min-width: 18px; height: 18px; }
+    .radio-settings form > button { justify-self: start; }
+    .radio-settings .settings-note { margin: 0; color: var(--muted); font-size: .77rem; }
+    .templates p { color: #a5b8ca; font-size: .84rem; }
+    .bot-toggle { display: flex; align-items: center; gap: 10px; width: fit-content; padding: 10px 13px; background: #19343d; border: 1px solid #3b776e; border-radius: 11px; color: #ddf8ed; font-size: .88rem; cursor: pointer; }
+    .bot-toggle input { width: 19px; min-width: 19px; height: 19px; accent-color: #3bc6ad; }
+    #bot-mode-status { margin: 7px 0 15px; }
+    .template-form { display: grid; grid-template-columns: 1fr 2fr auto auto; gap: 9px; align-items: end; }
+    .template-row { display: grid; grid-template-columns: 1fr 2fr auto auto; gap: 9px; align-items: center; border-top: 1px solid #2b4052; padding: 9px 0; }
+    .template-row span { overflow-wrap: anywhere; }
+    @media (max-width: 1120px) { .layout { grid-template-areas: "sidebar chat" "nodes chat"; grid-template-columns: minmax(235px, 280px) minmax(0, 1fr); } }
+    @media (max-width: 800px) {
+      .radio-settings-grid { grid-template-columns: 1fr; }
+      .dashboard-stats { grid-template-columns: 1fr 1fr; }
+      .info-strip { grid-template-columns: 1fr; }
+      .connection { grid-template-columns: 1fr 1fr; }
+      .connection-heading, .connection label { grid-column: 1 / -1; }
+      .connection button { width: 100%; }
+      .layout { grid-template-areas: "sidebar" "chat" "nodes"; grid-template-columns: 1fr; gap: 9px; }
+      .layout > aside { padding: 11px; }
+      .layout > aside .side-head { margin-bottom: 8px; }
+      .chat-switch { margin-bottom: 8px; }
+      .chat-switch button { padding: 8px 10px; }
+      .chat-group-label { margin: 9px 0 5px; }
+      .chat-group-items { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: thin; }
+      .chat-item { flex: 0 0 145px; padding: 8px 9px; margin-bottom: 0; }
+      .chat-item .preview { margin-top: 2px; font-size: .72rem; }
+      #open-create-channel { margin-top: 8px; padding: 8px 10px; }
+      .new-chat { grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 6px; margin-top: 9px; padding-top: 9px; }
+      .new-chat input { padding: 8px 9px; }
+      .new-chat button { width: auto; padding: 8px 9px; }
+      .chat { min-height: 0; height: clamp(410px, 72dvh, 620px); }
+      .chat-head { padding: 11px 14px; }
+      .chat-head p { font-size: .72rem; }
+      .chat-head > button { padding: 7px 9px; font-size: .76rem; }
+      #messages { min-height: 0; max-height: none; gap: 7px; padding: 12px 14px; }
+      .bubble { padding: 8px 10px; }
+      #send-form { padding: 10px 14px; }
+      #message-text { min-height: 52px; max-height: 110px; }
+      #send-form .actions { gap: 8px; }
+      #send-form .small { font-size: .69rem; }
+      #node-list { max-height: 420px; }
+      .template-form, .template-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 480px) {
+      .radio-settings { margin-left: 12px; margin-right: 12px; }
+      .radio-fields { grid-template-columns: 1fr; }
+      .top { padding: 17px 12px 14px; }
+      .tabs { padding: 0 12px; }
+      .tab { flex: 1; padding: 11px 5px; font-size: .84rem; }
+      .view-heading { margin: 6px 12px 10px; }
+      .view-heading h2 { font-size: 1.15rem; }
+      .view-heading p { font-size: .75rem; }
+      .dashboard-stats { grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 12px; }
+      .stat-card { padding: 13px; }
+      .stat-card:last-child { grid-column: 1 / -1; }
+      .map-card { margin-left: 12px; margin-right: 12px; }
+      .trace-history { margin-left: 12px; margin-right: 12px; }
+      h1 { font-size: 1.3rem; }
+      #status { max-width: 49%; font-size: .72rem; }
+      .connection, .connected-panel { margin-left: 12px; margin-right: 12px; }
+      .connected-panel { flex-wrap: wrap; }
+      .connected-panel button { width: 100%; }
+      .layout { padding: 0 12px 14px; }
+      .info-strip { padding: 0 12px; }
+      .layout > aside .side-head h2 { font-size: .94rem; }
+      .layout > aside .side-head button { padding: 7px 8px; font-size: .73rem; }
+      .chat-item { flex-basis: 132px; }
+      .chat-head h2 { font-size: .97rem; }
+      #messages, #send-form, .chat-head { padding-left: 11px; padding-right: 11px; }
+      .bubble { max-width: 92%; }
+      .templates { margin-left: 12px; margin-right: 12px; }
+    }
+  </style>
+  <script src="/leaflet.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="top"><div class="brand"><span class="brand-mark" aria-hidden="true">◉</span><div><span class="eyebrow">Локальная mesh-сеть</span><h1>Meshtastic</h1></div></div><span id="status" role="status">Загрузка…</span></header>
+  <nav class="tabs" role="tablist" aria-label="Разделы Meshtastic">
+    <button id="tab-dashboard" class="tab" type="button" role="tab" aria-controls="dashboard-view" aria-selected="true">Дашборд</button>
+    <button id="tab-chats" class="tab" type="button" role="tab" aria-controls="chats-view" aria-selected="false">Чаты <span id="chats-unread" class="unread-badge" hidden></span></button>
+    <button id="tab-settings" class="tab" type="button" role="tab" aria-controls="settings-view" aria-selected="false">Настройки</button>
+  </nav>
+  <p id="feedback" role="status"></p>
+  <section id="dashboard-view" class="view" role="tabpanel" aria-labelledby="tab-dashboard">
+    <div class="view-heading"><span class="eyebrow">Состояние сети</span><h2>Дашборд</h2><p class="muted">Ноды, соединение с радио и команды бота.</p></div>
+    <div class="dashboard-stats">
+      <article class="stat-card"><span>Известных нод</span><strong id="dashboard-node-count">—</strong><small>В памяти подключённой Heltec</small></article>
+      <article class="stat-card"><span>Личных диалогов</span><strong id="dashboard-chat-count">—</strong><small>С сохранёнными сообщениями</small></article>
+      <article class="stat-card"><span>Соединение</span><strong id="dashboard-connection">—</strong><small id="dashboard-device">Ожидание данных</small></article>
+    </div>
+  <section class="info-strip" aria-label="Погода и правила автоответов">
+    <article class="info-card weather-card">
+      <div class="info-head"><div><span class="eyebrow">Сейчас</span><h2 id="weather-location">Погода</h2></div><button id="weather-refresh" type="button">Обновить</button></div>
+      <div class="weather-main"><strong id="weather-temp">—</strong><div><span id="weather-condition">Загрузка погоды…</span><p id="weather-details"></p></div></div>
+      <p id="weather-time-row"><span id="weather-time">Ожидание данных</span> · Источник: <a class="weather-source" href="https://wttr.in/" target="_blank" rel="noopener noreferrer">wttr.in</a></p>
+    </article>
+    <article class="info-card rule-card">
+      <span class="eyebrow">Бот в личных сообщениях</span><h2>Команды бота</h2>
+      <p id="dashboard-bot-status"><strong>Бот включён</strong></p>
+      <p><code>ping</code> — число хопов до отправителя; <code>trace</code> — трассировка маршрута с ответом в личку.</p>
+      <p><code>stats</code> — CPU, RAM, температура, диск и время работы Pi; <code>w</code>/<code>W</code> — погода выбранного города; <code>date</code> — дата и время в настроенном часовом поясе. Совпавший шаблон имеет приоритет. На остальные сообщения и в общем канале бот не отвечает.</p>
+    </article>
+  </section>
+    <section class="map-card panel" aria-label="Карта нод">
+      <div class="side-head"><div><span class="eyebrow">География сети</span><h2 id="map-location">Ноды на карте</h2></div><div class="map-actions"><button id="map-fit" type="button" disabled>Все ноды</button><button id="map-reset" type="button">Центр карты</button></div></div>
+      <div id="node-map" role="img" aria-label="Карта с нодами, передавшими координаты"></div>
+      <p id="map-summary">Ожидание данных от ноды</p>
+    </section>
+  </section>
+  <section id="chats-view" class="view" role="tabpanel" aria-labelledby="tab-chats" hidden>
+    <div class="view-heading"><span class="eyebrow">Переписка</span><h2>Чаты</h2><p class="muted">Каналы Meshtastic и личные сообщения.</p></div>
+  <div class="layout">
+    <aside class="panel">
+      <div class="side-head"><h2>Переписка</h2><button id="show-templates" type="button">Автоответы</button></div>
+      <div class="chat-switch" role="tablist" aria-label="Тип переписки">
+        <button id="show-channels" type="button" role="tab" aria-selected="true">Каналы</button>
+        <button id="show-dms" type="button" role="tab" aria-selected="false">Личные</button>
+      </div>
+      <div id="channel-panel">
+        <div id="chat-list"></div>
+        <button id="open-create-channel" type="button">＋ Создать канал</button>
+      </div>
+      <div id="dm-panel" hidden>
+        <div id="dm-list"></div>
+        <form id="new-chat-form" class="new-chat">
+          <label>Новая личка<input id="new-peer" list="known-nodes" placeholder="!1234abcd" autocomplete="off"></label>
+          <datalist id="known-nodes"></datalist>
+          <button type="submit">Открыть диалог</button>
+        </form>
+      </div>
+    </aside>
+    <main class="chat panel">
+      <header class="chat-head"><div><h2 id="chat-title">LongFast</h2><p class="muted" id="chat-subtitle">Общий канал</p></div><button id="open-channel-config" type="button">Конфигурация</button></header>
+      <button id="history" type="button" hidden>Загрузить более ранние</button>
+      <section id="messages" aria-live="polite"></section>
+      <button id="newer" type="button" hidden>Показать следующие сообщения</button>
+      <form id="send-form">
+        <div id="reply-preview" hidden><div class="reply-summary"><strong id="reply-author"></strong><span id="reply-text"></span></div><button id="cancel-reply" type="button" aria-label="Отменить ответ">×</button></div>
+        <label>Сообщение<textarea id="message-text" placeholder="Напишите сообщение" required></textarea></label>
+        <div class="actions"><span class="small">До 200 байт UTF-8 · передача в радио не подтверждает доставку</span><button id="send-button" class="primary" type="submit" disabled>Отправить</button></div>
+      </form>
+    </main>
+    <section class="nodes panel" aria-label="Ноды Meshtastic">
+      <div class="side-head"><h2>Ноды <span id="node-count"></span></h2><button id="refresh-nodes" type="button">Обновить</button></div>
+      <label>Поиск по имени или ID<input id="node-search" type="search" placeholder="Имя, короткое имя или !ID" autocomplete="off"></label>
+      <p class="node-help">Ноды, известные Heltec. Нажмите на ноду, чтобы увидеть сведения и открыть личку.</p>
+      <div id="node-list"></div>
+    </section>
+  </div>
+  <section class="trace-history panel" aria-labelledby="trace-history-title">
+    <h2 id="trace-history-title">История трассировок</h2>
+    <p class="node-help">Последние маршруты и статусы запросов. История хранится в SQLite.</p>
+    <div id="trace-history-list" class="trace-list"></div>
+  </section>
+  </section>
+  <section id="settings-view" class="view" role="tabpanel" aria-labelledby="tab-settings" hidden>
+    <div class="view-heading"><span class="eyebrow">Управление</span><h2>Настройки</h2><p class="muted">Подключение Heltec и ответы бота в личке.</p></div>
+  <form id="connect-form" class="connection">
+    <div class="connection-heading"><span class="eyebrow">Радио</span><h2>Подключение к ноде</h2><p>Выберите интерфейс и устройство на Raspberry Pi.</p></div>
+    <label>Подключение<select id="transport"><option value="ble">Bluetooth</option><option value="usb">USB</option></select></label>
+    <label>Найденное устройство<select id="devices"><option value="">Найти устройство</option></select></label>
+    <label id="manual-wrap">Или BLE-адрес / имя<input id="device-manual" autocomplete="off" placeholder="AA:BB:CC:DD:EE:FF"></label>
+    <button type="button" id="scan">Найти</button>
+    <button type="submit" class="primary">Подключить</button>
+  </form>
+  <section id="connected-panel" class="connected-panel" hidden aria-label="Подключённая нода">
+    <div class="connected-info"><span class="connected-icon" aria-hidden="true">⌁</span><div><span class="eyebrow">Соединение активно</span><h2 id="connected-node">Нода</h2><p id="selected-device"></p></div></div>
+    <button type="button" id="disconnect" class="danger">Отключить</button>
+  </section>
+  <section class="radio-settings panel" aria-labelledby="radio-settings-title">
+    <h2 id="radio-settings-title">Настройки ноды</h2>
+    <p>Параметры читаются из подключённой Heltec. После сохранения нода может перезагрузиться или потерять текущее соединение, если изменён Bluetooth, Wi-Fi или LoRa. Пароли Wi-Fi и MQTT не показываются повторно; ключ выбранного канала можно просмотреть во вкладке «Чаты».</p>
+    <div id="radio-settings-root"><p class="settings-note">Подключите ноду, чтобы прочитать настройки.</p></div>
+  </section>
+  <section id="templates-panel" class="templates panel">
+    <h2>Автоответы в личке</h2>
+    <label class="bot-toggle"><input id="bot-enabled" type="checkbox" checked><span>Включить ответы бота</span></label>
+    <p id="bot-mode-status">Бот включён</p>
+    <p>Совпавший шаблон имеет приоритет. Без шаблона работают команды <strong>ping</strong> (хопы), <strong>trace</strong> (маршрут), <strong>stats</strong> (состояние Pi), <strong>w/W</strong> (погода выбранного города) и <strong>date</strong> (дата и время в настроенном часовом поясе). На остальные сообщения бот не отвечает. В LongFast автоответов нет.</p>
+    <form id="template-form" class="template-form">
+      <label>Ключ<input id="template-key" required placeholder="привет"></label>
+      <label>Ответ<input id="template-value" required placeholder="Привет!" maxlength="200"></label>
+      <button type="submit" class="primary">Сохранить</button>
+      <button id="template-cancel" type="button" hidden>Отмена</button>
+    </form>
+    <div id="template-list"></div>
+  </section>
+  </section>
+  <dialog id="create-channel-dialog" class="channel-config-dialog" aria-labelledby="create-channel-title">
+    <div class="channel-config-head"><div><h2 id="create-channel-title">Новый канал</h2><p>Будет занят первый свободный слот подключённой ноды.</p></div><button id="close-create-channel" type="button" aria-label="Закрыть">×</button></div>
+    <form id="create-channel-form">
+      <label>Название<input id="channel-name" placeholder="До 11 байт UTF-8" autocomplete="off" required></label>
+      <label>Ключ канала (Base64)<input id="channel-key" autocomplete="off" spellcheck="false" placeholder="Например, AQ==" required></label>
+      <button id="generate-channel-key" type="button">Новый ключ</button>
+      <p class="channel-note">«Новый ключ» создаёт случайный ключ 256 бит. Передайте его участникам; позже он доступен в конфигурации канала.</p>
+      <p id="create-channel-error" class="channel-note" role="alert" hidden style="color:#ffc1ba"></p>
+      <div class="channel-config-actions"><button id="create-channel-button" class="primary" type="submit">Создать канал</button><button id="cancel-create-channel" type="button">Отмена</button></div>
+    </form>
+  </dialog>
+  <dialog id="channel-config" class="channel-config-dialog" aria-labelledby="channel-config-title">
+    <div class="channel-config-head"><div><h2 id="channel-config-title">Конфигурация канала</h2><p id="channel-config-subtitle">Параметры ноды</p></div><button id="close-channel-config" type="button" aria-label="Закрыть">×</button></div>
+    <form id="channel-config-form" class="channel-config-form">
+      <label>Имя канала<input id="channel-config-name" autocomplete="off" placeholder="Без имени"></label>
+      <label>Роль<select id="channel-config-role"></select></label>
+      <label class="radio-check"><input id="channel-config-uplink" type="checkbox">Uplink в MQTT</label>
+      <label class="radio-check"><input id="channel-config-downlink" type="checkbox">Downlink из MQTT</label>
+      <label>Текущий ключ (Base64, как в Meshtastic)<input id="channel-config-current-key-base64" type="password" readonly autocomplete="off" spellcheck="false"></label>
+      <label>Тот же ключ (HEX)<input id="channel-config-current-key" type="password" readonly autocomplete="off" spellcheck="false"></label>
+      <button id="channel-config-reveal" type="button">Показать ключ</button>
+      <p class="channel-note">Например, Base64 <code>AQ==</code> и HEX <code>01</code> — одна и та же запись. Значение <code>01</code> означает стандартный ключ Meshtastic, а не отсутствие шифрования.</p>
+      <label>Новый ключ (HEX)<input id="channel-config-new-key" autocomplete="off" spellcheck="false" placeholder="Пусто — оставить прежний"></label>
+      <button id="channel-config-generate" type="button">Новый ключ</button>
+      <p class="channel-note">Изменение ключа отключит участников со старым ключом. Конфигурация загружается с подключённой ноды; показанный ключ не сохраняется в браузере после закрытия окна.</p>
+      <div class="channel-config-actions"><button id="channel-config-save" class="primary" type="submit">Сохранить</button><button id="channel-config-cancel" type="button">Отмена</button></div>
+    </form>
+  </dialog>
+  <dialog id="node-details" class="node-dialog" aria-labelledby="node-details-title">
+    <div class="node-dialog-head"><div><span class="eyebrow">Сведения о ноде</span><h2 id="node-details-title">Нода</h2><p id="node-details-subtitle"></p></div><button id="node-details-close" type="button" aria-label="Закрыть">×</button></div>
+    <div id="node-details-content" class="node-dialog-content"></div>
+    <div class="node-traces"><h3>Трассировки до этой ноды</h3><div id="node-trace-list" class="trace-list"></div></div>
+    <div class="node-dialog-actions"><button id="node-trace-start" type="button">Трассировать</button><button id="node-open-chat" class="primary" type="button">Открыть личку</button></div>
+  </dialog>
+</body>
+</html>
