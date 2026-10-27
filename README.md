@@ -192,19 +192,3 @@ sudo docker compose logs --tail=80 meshtastic
 | **leaflet.js**, **leaflet.css** | Локальная копия Leaflet для карты |
 
 Исходный код проекта распространяется по лицензии **MIT** (файл **LICENSE**). Данные Unicode/CLDR и Leaflet сохраняют собственные лицензии в **UNICODE-LICENSE.txt** и **LEAFLET-LICENSE.txt**. Названия Meshtastic и Heltec принадлежат их правообладателям; проект с ними не аффилирован.
-
-## Публикация своей копии на GitHub
-
-Создайте на GitHub пустой репозиторий **без автоматически созданных README и LICENSE**, затем в распакованной папке проекта выполните:
-
-~~~bash
-git init
-git add .
-git status --short
-git commit -m "Initial release"
-git branch -M main
-git remote add origin https://github.com/ACCOUNT/REPOSITORY.git
-git push -u origin main
-~~~
-
-Замените **ACCOUNT/REPOSITORY** на адрес своего репозитория. **git status --short** показывает точный список добавляемых файлов: убедитесь, что там есть **.env.example**, но нет **.env**, баз SQLite, журналов или резервных копий. После публикации проверьте список файлов и историю коммитов на GitHub. Если настоящий секрет когда-либо попал в коммит, удаление файла из следующего коммита не отменяет утечку: смените этот секрет и очистите историю до публикации.
